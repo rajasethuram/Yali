@@ -23,6 +23,10 @@ class FallbackPlanner:
         if 'create' in task or 'write' in task:
             return FallbackPlanner._parse_create(task)
         
+        # Help/capability commands
+        if any(x in task for x in ['what can you do', 'what else', 'other things', 'help', 'who are you', 'what are other']):
+            return ['say I can open applications, search the web, create files, and run system commands for you.']
+
         # Search/Info commands
         if any(x in task for x in ['weather', 'what is', 'who is', 'search for', 'stock', 'price']):
             return FallbackPlanner._parse_search(task)
