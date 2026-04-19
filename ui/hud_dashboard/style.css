@@ -1,0 +1,11 @@
+body{background:linear-gradient(135deg, rgba(10,10,20,0.6), rgba(2,12,30,0.8));font-family:Inter,Segoe UI,Arial;color:#aee7ff}
+.hud{max-width:1000px;margin:24px auto;padding:18px;border-radius:12px;background:rgba(255,255,255,0.03);backdrop-filter:blur(8px);box-shadow:0 8px 40px rgba(0,0,0,0.6);}
+.panel{padding:12px;margin:8px;border-radius:8px;border:1px solid rgba(160,220,255,0.08);background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));}
+.header{font-size:20px;font-weight:700;text-align:center;color:#e6faff}
+.row{display:flex;gap:12px}
+.logs{height:200px;overflow:auto;white-space:pre-wrap;background:rgba(0,0,0,0.2)}
+.input-section{display:flex;gap:8px;align-items:center}
+#task-input{flex:1;padding:10px;border:1px solid rgba(160,220,255,0.2);border-radius:6px;background:rgba(0,0,0,0.3);color:#aee7ff;font-size:14px}
+#task-input:focus{outline:none;border-color:#a0dcff;box-shadow:0 0 8px rgba(160,220,255,0.2)}
+#submit-btn{padding:10px 20px;border:1px solid rgba(160,220,255,0.4);border-radius:6px;background:rgba(160,220,255,0.1);color:#aee7ff;cursor:pointer;font-weight:600;transition:all 0.3s}
+#submit-btn:hover{background:rgba(160,220,255,0.2);box-shadow:0 0 12px rgba(160,220,255,0.3)}
