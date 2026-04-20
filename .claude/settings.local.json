@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(claude plugin *)",
+      "Bash(python -c \"import zipfile; z=zipfile.ZipFile\\('caveman.skill'\\); print\\(z.read\\('caveman/SKILL.md'\\).decode\\('utf-8'\\)\\)\")",
+      "Bash(python -c \"import zipfile,sys; z=zipfile.ZipFile\\('caveman.skill'\\); sys.stdout.buffer.write\\(z.read\\('caveman/SKILL.md'\\)\\)\")",
+      "Bash(python \"C:\\\\Users\\\\91944\\\\.claude\\\\skills\\\\memory-automation\\\\memory_logger.py\")",
+      "Bash(python \"C:\\\\Users\\\\91944\\\\.claude\\\\skills\\\\memory-automation\\\\mem_search.py\" --recent 5)",
+      "Bash(python \"C:\\\\Users\\\\91944\\\\.claude\\\\skills\\\\memory-automation\\\\mem_search.py\" --stats)",
+      "Skill(update-config)",
+      "Read(//c/Users/91944/.claude/**)",
+      "Bash(where node *)",
+      "Bash(powershell -command \"Get-Command node -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(powershell -command \"where.exe node\")",
+      "Read(//c/Program Files/**)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,':',v\\) for k,v in d.items\\(\\) if k in ['hooks','startup','scripts']]\")",
+      "Bash(powershell -command \"[System.Environment]::GetEnvironmentVariable\\('PATH','Machine'\\) + ';' + [System.Environment]::GetEnvironmentVariable\\('PATH','User'\\)\")",
+      "Bash(powershell *)",
+      "Bash(winget --version)",
+      "Bash(choco --version)",
+      "Bash(scoop --version)",
+      "Bash(python *)"
+    ]
+  }
+}

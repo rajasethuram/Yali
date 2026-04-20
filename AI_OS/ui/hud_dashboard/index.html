@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YALI - AI Operating System</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+  <div class="hud-container">
+    <!-- Header Section -->
+    <div class="hud-header">
+      <div class="logo-section">
+        <div class="logo">
+          <i data-lucide="cpu" class="logo-icon"></i>
+          <span class="logo-text">YALI</span>
+        </div>
+        <div class="status-indicator">
+          <div class="status-dot" id="system-status"></div>
+          <span class="status-text">SYSTEM ONLINE</span>
+        </div>
+      </div>
+      <div class="header-controls">
+        <button class="control-btn" id="voice-toggle" title="Voice Input">
+          <i data-lucide="mic"></i>
+        </button>
+        <button class="control-btn" id="settings-btn" title="Settings">
+          <i data-lucide="settings"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="hud-main">
+      <!-- System Metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon">
+            <i data-lucide="activity"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="cpu">0%</div>
+            <div class="metric-label">CPU Usage</div>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">
+            <i data-lucide="hard-drive"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="mem">0%</div>
+            <div class="metric-label">Memory</div>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">
+            <i data-lucide="zap"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="wake-status">IDLE</div>
+            <div class="metric-label">Wake Status</div>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">
+            <i data-lucide="bot"></i>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value" id="agents">Idle</div>
+            <div class="metric-label">AI Agents</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Pipeline -->
+      <div class="pipeline-section">
+        <div class="section-header">
+          <i data-lucide="workflow"></i>
+          <span>Task Pipeline</span>
+        </div>
+        <div class="pipeline-status" id="pipeline">
+          <div class="pipeline-step" data-step="planning">
+            <div class="step-icon"><i data-lucide="brain"></i></div>
+            <div class="step-label">Planning</div>
+          </div>
+          <div class="pipeline-step" data-step="executing">
+            <div class="step-icon"><i data-lucide="play"></i></div>
+            <div class="step-label">Executing</div>
+          </div>
+          <div class="pipeline-step" data-step="validating">
+            <div class="step-icon"><i data-lucide="check-circle"></i></div>
+            <div class="step-label">Validating</div>
+          </div>
+          <div class="pipeline-step" data-step="completed">
+            <div class="step-icon"><i data-lucide="check"></i></div>
+            <div class="step-label">Completed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Section -->
+      <div class="input-section">
+        <div class="input-container">
+          <div class="input-wrapper">
+            <i data-lucide="message-square" class="input-icon"></i>
+            <input type="text" id="task-input" placeholder="Ask YALI anything..." autocomplete="off">
+            <button class="voice-btn" id="voice-btn" title="Voice Input">
+              <i data-lucide="mic"></i>
+            </button>
+          </div>
+          <button class="submit-btn" id="submit-btn">
+            <i data-lucide="send"></i>
+            <span>Execute</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Response Display -->
+      <div class="response-section">
+        <div class="section-header">
+          <i data-lucide="terminal"></i>
+          <span>System Response</span>
+        </div>
+        <div class="response-content" id="response-content">
+          <div class="welcome-message">
+            <div class="welcome-icon">
+              <i data-lucide="sparkles"></i>
+            </div>
+            <div class="welcome-text">
+              <h3>Welcome to YALI</h3>
+              <p>Your AI Operating System is ready. Ask me to open applications, search the web, create files, or run system commands.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Logs -->
+      <div class="logs-section">
+        <div class="section-header">
+          <i data-lucide="file-text"></i>
+          <span>Activity Logs</span>
+        </div>
+        <div class="logs-content" id="logs"></div>
+      </div>
+
+      <!-- ═══════════════ YALI MIND PANEL ═══════════════ -->
+      <div class="mind-section" id="mind-panel">
+        <div class="section-header mind-header">
+          <i data-lucide="brain-circuit"></i>
+          <span>YALI MIND — Interview Co-Pilot</span>
+          <div class="mind-tabs">
+            <button class="mind-tab active" data-tab="live">Live Assist</button>
+            <button class="mind-tab" data-tab="practice">Practice</button>
+            <button class="mind-tab" data-tab="review">Review</button>
+          </div>
+        </div>
+
+        <!-- Live Assist Tab -->
+        <div class="mind-tab-content active" id="tab-live">
+          <div class="mind-input-row">
+            <input type="text" id="mind-question-input" placeholder="Paste or type the interview question here..." autocomplete="off">
+            <button class="mind-ask-btn" id="mind-ask-btn">
+              <i data-lucide="zap"></i> Get Answer
+            </button>
+            <button class="mind-listen-btn" id="mind-listen-btn" title="Listen for question">
+              <i data-lucide="mic"></i>
+            </button>
+          </div>
+
+          <div class="mind-intent-badge" id="mind-intent-badge" style="display:none">
+            <span id="mind-intent-label">Behavioral</span>
+            <span class="mind-framework" id="mind-framework"></span>
+          </div>
+
+          <div class="mind-answer-box" id="mind-answer-box" style="display:none">
+            <div class="mind-section-block opening-block">
+              <div class="mind-block-label">OPENING (10 sec)</div>
+              <div class="mind-block-content" id="mind-opening"></div>
+            </div>
+            <div class="mind-section-block bullets-block">
+              <div class="mind-block-label">KEY POINTS</div>
+              <ul class="mind-bullets" id="mind-bullets"></ul>
+            </div>
+            <div class="mind-section-block example-block">
+              <div class="mind-block-label">EXAMPLE</div>
+              <div class="mind-block-content" id="mind-example"></div>
+            </div>
+            <div class="mind-section-block keywords-block">
+              <div class="mind-block-label">KEYWORDS</div>
+              <div class="mind-keywords" id="mind-keywords"></div>
+            </div>
+          </div>
+
+          <div class="mind-loading" id="mind-loading" style="display:none">
+            <div class="mind-spinner"></div>
+            <span>Generating answer...</span>
+          </div>
+        </div>
+
+        <!-- Practice Tab -->
+        <div class="mind-tab-content" id="tab-practice" style="display:none">
+          <div class="practice-controls">
+            <select id="practice-area">
+              <option value="all">All Categories</option>
+              <option value="behavioral">Behavioral</option>
+              <option value="technical">Technical</option>
+              <option value="leadership">Leadership</option>
+              <option value="situational">Situational</option>
+            </select>
+            <button class="mind-ask-btn" id="practice-start-btn">
+              <i data-lucide="play"></i> Start Practice
+            </button>
+          </div>
+          <div class="practice-question-box" id="practice-question-box" style="display:none">
+            <div class="practice-q-num" id="practice-q-num">Question 1/10</div>
+            <div class="practice-q-text" id="practice-q-text"></div>
+            <div class="practice-q-type" id="practice-q-type"></div>
+            <div class="practice-q-btns">
+              <button class="mind-ask-btn" id="practice-get-answer-btn">
+                <i data-lucide="lightbulb"></i> Show Answer
+              </button>
+              <button class="mind-tab secondary-btn" id="practice-next-btn">
+                Next <i data-lucide="arrow-right"></i>
+              </button>
+            </div>
+          </div>
+          <div id="practice-question-list"></div>
+        </div>
+
+        <!-- Review Tab -->
+        <div class="mind-tab-content" id="tab-review" style="display:none">
+          <div class="review-input-row">
+            <textarea id="review-transcript" placeholder="Paste your answer here to analyze it..." rows="4"></textarea>
+            <button class="mind-ask-btn" id="review-analyze-btn">
+              <i data-lucide="bar-chart-2"></i> Analyze
+            </button>
+          </div>
+          <div class="review-results" id="review-results" style="display:none">
+            <div class="score-grid">
+              <div class="score-card">
+                <div class="score-val" id="review-overall">--</div>
+                <div class="score-lbl">Overall</div>
+              </div>
+              <div class="score-card">
+                <div class="score-val" id="review-confidence">--</div>
+                <div class="score-lbl">Confidence</div>
+              </div>
+              <div class="score-card">
+                <div class="score-val" id="review-pace">--</div>
+                <div class="score-lbl">Pace</div>
+              </div>
+              <div class="score-card">
+                <div class="score-val" id="review-structure">--</div>
+                <div class="score-lbl">Structure</div>
+              </div>
+            </div>
+            <div class="review-filler" id="review-filler"></div>
+            <div class="review-grade" id="review-grade"></div>
+            <ul class="review-suggestions" id="review-suggestions"></ul>
+          </div>
+        </div>
+
+      </div>
+      <!-- ═══════════════ END YALI MIND ════════════════ -->
+
+    </div>
+
+    <!-- Voice Recognition Indicator -->
+    <div class="voice-overlay" id="voice-overlay">
+      <div class="voice-indicator">
+        <div class="voice-wave">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+        <div class="voice-text">Listening...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js" defer></script>
+  <script src="/static/animations.js" defer></script>
+  <script src="/static/mind.js" defer></script>
+</body>
+</html>

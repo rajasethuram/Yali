@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+requests
+pyttsx3
+SpeechRecognition
+PyAudio
+aiohttp
+websockets
+psutil
+python-dotenv
+jinja2
+
+# Optional (Porcupine requires installation per Picovoice instructions)
+# pvporcupine

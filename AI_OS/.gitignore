@@ -1,0 +1,111 @@
+# API keys and sensitive data
+config/secrets.py
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+
+# Claude AI assistant files
+.claude/
+
+# Sensitive data patterns
+*password*
+*secret*
+*key*
+*token*
+*auth*
+*credential*
+*private*
+*api_key*
+*access_token*
+*refresh_token*
+*client_secret*
+*client_id*
+*aws_access_key*
+*aws_secret_key*
+*google_api_key*
+*openai_api_key*
+*database_url*
+*db_password*
+*redis_url*
+*mongo_url*
+
+# SSH keys
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_dsa
+*.pub
+
+# Personal information
+*email*
+*phone*
+*address*
+*ssn*
+*credit_card*
+*bank*
+
+# Logs with potential sensitive data
+logs/*.log
+memory/*.json
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE and editor files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.tmp/
+.env.local
+
+# Ollama models (if any)
+models/
