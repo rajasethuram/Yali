@@ -8,7 +8,10 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# Finance + web search — Gemini 2.5 Flash (free, Google Search built-in)
+# Finance web search — Claude claude-opus-4-5 + web_search tool (primary)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+# Finance fallback — Gemini 2.5 Flash + Google Search
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = "gemini-2.5-flash"
 

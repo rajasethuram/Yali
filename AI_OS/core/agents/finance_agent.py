@@ -54,22 +54,52 @@ def _extract_symbol(query: str) -> str:
     return m.group(1).upper() if m else ""
 
 
-def _llm_ask(user_prompt: str, use_search: bool = True, max_tokens: int = 400) -> str:
-    """Try Gemini first (with optional Google Search), fall back to Groq."""
+def _llm_ask(
+    user_prompt: str,
+    use_search: bool = True,
+    max_tokens: int = 400,
+    terminal_data: str = "",
+) -> str:
+    """
+    LLM routing for finance queries:
+      1. Claude claude-opus-4-5 + web_search tool + terminal data (if ANTHROPIC_API_KEY)
+      2. Gemini 2.5 Flash + Google Search grounding (if GEMINI_API_KEY)
+      3. Groq llama-3.3-70b (always available, no search)
+    """
+    # 1 — Claude with web search + terminal context
+    if use_search:
+        try:
+            from core.claude_web_client import ask_with_websearch, is_available as claude_ok
+            if claude_ok():
+                result = ask_with_websearch(
+                    user_prompt,
+                    system_prompt=FINANCE_SYSTEM,
+                    terminal_data=terminal_data,
+                    max_tokens=max_tokens,
+                )
+                if result:
+                    return result
+        except Exception as e:
+            logger.warning(f"Claude web search failed, trying Gemini: {e}")
+
+    # 2 — Gemini with Google Search grounding
     try:
-        from core.gemini_client import ask_with_search, ask as gemini_ask, is_available
-        if is_available():
+        from core.gemini_client import ask_with_search, ask as gemini_ask, is_available as gem_ok
+        if gem_ok():
             fn = ask_with_search if use_search else gemini_ask
-            result = fn(user_prompt, system_prompt=FINANCE_SYSTEM, max_tokens=max_tokens)
+            ctx = f"{terminal_data}\n\n" if terminal_data else ""
+            result = fn(ctx + user_prompt, system_prompt=FINANCE_SYSTEM, max_tokens=max_tokens)
             if result:
                 return result
     except Exception as e:
-        logger.warning(f"Gemini call failed, falling back to Groq: {e}")
+        logger.warning(f"Gemini failed, falling back to Groq: {e}")
 
+    # 3 — Groq (no live search, but has yfinance data in prompt)
     from core.llm_client import ask as groq_ask
-    ctx = memory.get_context()
-    return groq_ask(user_prompt=user_prompt, system_prompt=FINANCE_SYSTEM,
-                    memory_context=ctx, max_tokens=max_tokens) or ""
+    mem_ctx = memory.get_context()
+    full = f"{terminal_data}\n\n{user_prompt}" if terminal_data else user_prompt
+    return groq_ask(user_prompt=full, system_prompt=FINANCE_SYSTEM,
+                    memory_context=mem_ctx, max_tokens=max_tokens) or ""
 
 
 class FinanceAgent:
@@ -87,26 +117,27 @@ class FinanceAgent:
             return await self._qa(query)
 
     async def _briefing(self) -> str:
-        overview = get_market_overview()
-        nifty   = overview["nifty"]
-        sensex  = overview["sensex"]
-        bnk     = overview["banknifty"]
+        from core.claude_web_client import get_finance_terminal_data
+        # Pull live prices via terminal (yfinance subprocess)
+        terminal_data = get_finance_terminal_data()
 
-        price_ctx = (
+        # Also get yfinance dict for fallback display
+        overview = get_market_overview()
+        nifty, sensex, bnk = overview["nifty"], overview["sensex"], overview["banknifty"]
+        fallback = (
             f"Nifty: {nifty.get('price','N/A')} ({nifty.get('change_pct','N/A')}%)\n"
             f"Sensex: {sensex.get('price','N/A')} ({sensex.get('change_pct','N/A')}%)\n"
             f"Bank Nifty: {bnk.get('price','N/A')} ({bnk.get('change_pct','N/A')}%)"
         )
 
         prompt = (
-            f"Raja needs a concise 60-second Indian market briefing for today.\n"
-            f"Live prices:\n{price_ctx}\n\n"
-            f"Search for today's top NSE/Nifty news and macro drivers, then give "
-            f"a crisp briefing: market tone, key movers, any macro risk, and one "
-            f"actionable insight for Raja."
+            f"Raja needs a concise 60-second Indian market briefing for today.\n\n"
+            f"Search for today's top NSE/Nifty news, FII/DII activity, global cues, "
+            f"and key sector movers. Give: market tone, top 2 movers, macro risk, "
+            f"one actionable insight."
         )
-        resp = _llm_ask(prompt, use_search=True, max_tokens=350)
-        return resp or price_ctx
+        resp = _llm_ask(prompt, use_search=True, max_tokens=400, terminal_data=terminal_data)
+        return resp or fallback
 
     async def _analysis(self, symbol: str, query: str) -> str:
         if not symbol:
@@ -116,6 +147,13 @@ class FinanceAgent:
         if "error" in data:
             return f"Could not fetch data for {symbol}: {data['error']}"
 
+        from core.claude_web_client import get_finance_terminal_data
+        # Get terminal data for this specific symbol
+        nse_sym = f"{symbol}.NS" if symbol not in ("NIFTY","SENSEX","BANKNIFTY") else (
+            {"NIFTY": "^NSEI", "SENSEX": "^BSESN", "BANKNIFTY": "^NSEBANK"}[symbol]
+        )
+        terminal_data = get_finance_terminal_data(symbols=[nse_sym])
+
         price_ctx = (
             f"{symbol}: ₹{data['price']} | Change: {data['change_pct']}%\n"
             f"52W High: {data['high_52w']} | 52W Low: {data['low_52w']}\n"
@@ -123,37 +161,44 @@ class FinanceAgent:
         )
 
         prompt = (
-            f"Analyze NSE:{symbol} for Raja. Live price data:\n{price_ctx}\n\n"
-            f"Search for latest news, analyst ratings, and any recent events for {symbol}. "
-            f"Format response as:\n"
+            f"Analyze NSE:{symbol} for Raja.\n\n"
+            f"Search for latest news, analyst ratings, recent events for {symbol}.\n"
+            f"Format:\n"
             f"Trend: [bullish/bearish/sideways + reason]\n"
             f"Key levels: [support / resistance]\n"
-            f"Recent catalyst: [latest news driving the move]\n"
+            f"Recent catalyst: [latest news]\n"
             f"Risk: [key downside risk]\n"
             f"Verdict: [1-line opinion]"
         )
-        resp = _llm_ask(prompt, use_search=True, max_tokens=400)
+        resp = _llm_ask(prompt, use_search=True, max_tokens=450,
+                        terminal_data=f"{terminal_data}\n{price_ctx}")
         return resp or price_ctx
 
     async def _qa(self, query: str) -> str:
         symbol = _extract_symbol(query)
-        price_block = ""
+        terminal_data = ""
         if symbol:
-            data = get_price(symbol)
-            if "error" not in data:
-                price_block = f"\nLive: {symbol} ₹{data['price']} ({data['change_pct']}%)"
+            from core.claude_web_client import get_finance_terminal_data
+            nse_sym = f"{symbol}.NS" if symbol not in ("NIFTY","SENSEX","BANKNIFTY") else (
+                {"NIFTY": "^NSEI", "SENSEX": "^BSESN", "BANKNIFTY": "^NSEBANK"}[symbol]
+            )
+            terminal_data = get_finance_terminal_data(symbols=[nse_sym])
 
-        prompt = (
-            f"{query}{price_block}\n\n"
-            f"Answer for Raja concisely. Search for latest data if needed."
-        )
-        resp = _llm_ask(prompt, use_search=True, max_tokens=450)
+        prompt = f"{query}\n\nAnswer for Raja concisely. Search for latest data."
+        resp = _llm_ask(prompt, use_search=True, max_tokens=450, terminal_data=terminal_data)
         return resp or "Finance data unavailable."
 
     async def _predict(self, query: str) -> str:
+        from core.claude_web_client import get_finance_terminal_data
         mem_data = memory.recall_all()
         watchlist = mem_data.get("watchlist", [])
         sectors   = mem_data.get("sector_interests", [])
+
+        # Get live terminal data for Nifty + watchlist
+        syms = ["^NSEI", "^BSESN"]
+        for w in watchlist[:3]:
+            syms.append(f"{w}.NS")
+        terminal_data = get_finance_terminal_data(symbols=syms)
 
         seed = build_mirofish_seed(query, watchlist=watchlist, sector_focus=sectors)
 
@@ -161,26 +206,24 @@ class FinanceAgent:
         mirofish_result = _call_mirofish(seed)
         if mirofish_result:
             prompt = (
-                f"MiroFish swarm simulation result:\n{mirofish_result}\n\n"
-                f"Summarize prediction for Raja: direction, confidence %, key risk."
+                f"MiroFish swarm simulation:\n{mirofish_result}\n\n"
+                f"Summarize for Raja: direction, confidence %, key risk."
             )
-            resp = _llm_ask(prompt, use_search=False, max_tokens=300)
+            resp = _llm_ask(prompt, use_search=False, max_tokens=300, terminal_data=terminal_data)
             result = resp or mirofish_result
             _save_prediction_from_text(query, result)
             return result
 
-        # Gemini / Groq prediction with live search
         prompt = (
             f"Raja asks: {query}\n\n"
-            f"Market context:\n{seed}\n\n"
             f"Search for today's Nifty/Sensex technical outlook, FII/DII data, "
-            f"global cues (Dow, Nasdaq, SGX Nifty), and give a directional prediction:\n"
+            f"global cues (Dow futures, SGX Nifty, crude oil). Predict:\n"
             f"Direction: [bullish/bearish/sideways]\n"
             f"Confidence: [X%]\n"
             f"Key risk: [main risk]\n"
-            f"Agent consensus: [brief summary]"
+            f"Reasoning: [2-3 lines]"
         )
-        resp = _llm_ask(prompt, use_search=True, max_tokens=450)
+        resp = _llm_ask(prompt, use_search=True, max_tokens=500, terminal_data=terminal_data)
         result = resp or "Prediction unavailable."
         _save_prediction_from_text(query, result)
         return result
