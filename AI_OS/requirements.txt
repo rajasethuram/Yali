@@ -10,8 +10,11 @@ psutil
 python-dotenv
 jinja2
 
-# LLM
+# LLM — agents (Groq, free, 14400 req/day)
 groq
+
+# Finance + web search (Gemini 2.0 Flash, free, 1500 req/day, Google Search built-in)
+google-genai
 
 # Finance data
 yfinance

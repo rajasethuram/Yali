@@ -4,9 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-# LLM — Groq (free, fast)
+# LLM — Groq (free, fast) — all agents
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = "llama-3.3-70b-versatile"
+
+# Finance + web search — Gemini 2.0 Flash (free, 1500 req/day)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = "gemini-2.0-flash"
 
 # UI
 HUD_HOST = "0.0.0.0"
