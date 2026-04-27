@@ -531,7 +531,7 @@ async def chat(request: Request):
         agent = FinanceAgent()
         result = await agent.handle(cmd)
     else:
-        ctx = get_context()
+        ctx = get_context(query=cmd)
         result = ask(user_prompt=cmd, memory_context=ctx, max_tokens=600)
         if not result:
             result = "I couldn't process that command. Try again."
@@ -544,9 +544,27 @@ async def chat(request: Request):
 @app.get('/memory/recall')
 async def memory_recall():
     from core.memory import recall_all, _load
+    from core.vector_memory import count as vec_count, is_available as vec_ok
     lt = recall_all()
     data = _load()
-    return JSONResponse({**lt, "mid_term": data.get("mid_term", [])[-20:]})
+    return JSONResponse({
+        **lt,
+        "mid_term": data.get("mid_term", [])[-20:],
+        "vector_count": vec_count() if vec_ok() else 0,
+        "neural_active": vec_ok(),
+    })
+
+
+@app.get('/memory/search')
+async def memory_search(q: str = "", n: int = 5):
+    """Semantic search across all stored memories."""
+    if not q:
+        return JSONResponse({"error": "q param required"}, status_code=400)
+    from core.vector_memory import search, is_available
+    if not is_available():
+        return JSONResponse({"error": "Neural memory not available", "results": []})
+    results = search(q, n=n)
+    return JSONResponse({"query": q, "results": results, "count": len(results)})
 
 
 @app.get('/finance/price/{symbol}')
@@ -569,8 +587,23 @@ async def _startup():
     except Exception:
         pass
 
-    print("[YALI] Server started. YALI MIND + Job Engine ready.")
-    print(f"[YALI] Groq API: {'configured' if GROQ_API_KEY else 'NOT configured - add GROQ_API_KEY to .env (free at console.groq.com)'}")
+    # Boot vector memory + migrate old JSON entries
+    async def _init_vector():
+        try:
+            from core.vector_memory import is_available, migrate_from_json, count
+            from core.memory import _load
+            if is_available():
+                data = _load()
+                migrate_from_json(data.get("mid_term", []))
+                print(f"[YALI] Neural memory: {count()} vectors in ChromaDB.")
+            else:
+                print("[YALI] Neural memory: unavailable (sentence-transformers not loaded).")
+        except Exception as e:
+            print(f"[YALI] Neural memory init skipped: {e}")
+    asyncio.create_task(_init_vector())
+
+    print("[YALI] Server started. YALI MIND + Job Engine + Neural Memory ready.")
+    print(f"[YALI] Groq: {'OK' if GROQ_API_KEY else 'MISSING'}")
 
 
 def run_server():

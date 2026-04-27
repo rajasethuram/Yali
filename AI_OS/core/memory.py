@@ -47,7 +47,7 @@ def _save(data: dict):
 
 
 def write(query: str, response: str, agent: str = ""):
-    """Save interaction to short-term (RAM) and mid-term (JSON)."""
+    """Save interaction to short-term (RAM), mid-term (JSON), and vector store."""
     entry = {
         "ts": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "query": query,
@@ -62,16 +62,43 @@ def write(query: str, response: str, agent: str = ""):
         data["mid_term"] = data["mid_term"][-50:]
     _save(data)
 
+    # Neural memory — embed + store in ChromaDB (non-blocking import)
+    try:
+        from core.vector_memory import store as vec_store
+        vec_store(query, response, agent=agent)
+    except Exception:
+        pass
 
-def get_context(n_short: int = 5, n_mid: int = 3) -> str:
-    """Build memory context string for injection into system prompt."""
+
+def get_context(n_short: int = 5, n_mid: int = 3, query: str = "") -> str:
+    """
+    Build memory context for LLM injection.
+    If query provided → semantic recall from vector store (neural).
+    Always includes recent session + watchlist + predictions.
+    """
     parts = []
 
+    # 1 — Semantic recall (vector search) if query given
+    if query:
+        try:
+            from core.vector_memory import build_context as vec_ctx, count as vec_count
+            if vec_count() > 0:
+                semantic = vec_ctx(query, n=4)
+                if semantic:
+                    parts.append(semantic)
+        except Exception:
+            pass
+
+    # 2 — Recent session (RAM)
     recent = list(_short_term)[-n_short:]
     if recent:
-        lines = [f"  [{e['ts']}] Raja: {e['query'][:80]} → Yali: {e['response'][:80]}" for e in recent]
+        lines = [
+            f"  [{e['ts']}] Raja: {e['query'][:80]} → Yali: {e['response'][:80]}"
+            for e in recent
+        ]
         parts.append("Recent session:\n" + "\n".join(lines))
 
+    # 3 — Long-term structured facts
     data = _load()
     watchlist = data["long_term"].get("watchlist", [])
     if watchlist:
@@ -83,7 +110,10 @@ def get_context(n_short: int = 5, n_mid: int = 3) -> str:
 
     preds = data["long_term"].get("predictions", [])[-3:]
     if preds:
-        pred_lines = [f"  {p['date']}: {p['question']} → {p['direction']} ({p['confidence']}%)" for p in preds]
+        pred_lines = [
+            f"  {p['date']}: {p['question']} → {p['direction']} ({p['confidence']}%)"
+            for p in preds
+        ]
         parts.append("Recent predictions:\n" + "\n".join(pred_lines))
 
     return "\n".join(parts) if parts else ""
