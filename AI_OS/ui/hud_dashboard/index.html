@@ -828,16 +828,29 @@ function Sidebar({ active, onNav }) {
   );
 }
 
-function Topbar({ time, ticker }) {
+function Topbar({ time, ticker, voiceState }) {
   const items = ticker.length ? ticker : [
     {sym:"NIFTY",price:"--",pct:"--",up:true},{sym:"SENSEX",price:"--",pct:"--",up:true},{sym:"BNKNIFTY",price:"--",pct:"--",up:true}
   ];
   const doubled = [...items,...items];
+
+  const voiceStyle = {
+    listening: { color:"var(--ok)",     label:"● LISTENING",  pulse: true  },
+    thinking:  { color:"var(--warn)",   label:"◈ THINKING",   pulse: true  },
+    speaking:  { color:"var(--accent)", label:"◉ SPEAKING",   pulse: true  },
+    idle:      { color:"var(--muted)",  label:"◯ CTRL+SPACE", pulse: false },
+  };
+  const vs = voiceStyle[voiceState] || voiceStyle.idle;
+
   return (
     <div style={{ height:54, background:"var(--panel)", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", padding:"0 18px", gap:16, flexShrink:0 }}>
       <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
         <StatDot color="var(--ok)" size={7} pulse />
         <span style={{ fontFamily:"var(--mono)", fontSize:10.5, color:"var(--ok)", textTransform:"uppercase", letterSpacing:1.5 }}>systems online · "yali"</span>
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:6, background:"color-mix(in oklab, var(--panel-2) 80%, transparent)", border:"1px solid var(--border)", borderRadius:6, padding:"3px 10px", flexShrink:0 }}>
+        {vs.pulse && <StatDot color={vs.color} size={6} pulse />}
+        <span style={{ fontFamily:"var(--mono)", fontSize:9.5, color:vs.color, letterSpacing:1.5 }}>{vs.label}</span>
       </div>
       <div style={{ width:1, height:22, background:"var(--border)" }} />
       <div style={{ flex:1, overflow:"hidden", position:"relative", maskImage:"linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent)" }}>
@@ -913,6 +926,7 @@ function App() {
   const [ticker, setTicker] = React.useState([]);
   const [config, setConfig] = React.useState({ accentHue:218, theme:"deep", density:"comfy", displayFont:"'Bebas Neue', sans-serif" });
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
+  const [voiceState, setVoiceState] = React.useState("idle");
 
   // Clock
   React.useEffect(() => { const t=setInterval(()=>setTime(new Date()),1000); return ()=>clearInterval(t); }, []);
@@ -938,6 +952,9 @@ function App() {
   useYaliWS(msg => {
     if (msg.type === "system") {
       setSys({ cpu: msg.cpu||0, mem: msg.mem||0 });
+    }
+    if (msg.type === "voice") {
+      setVoiceState(msg.state || "idle");
     }
     if (msg.type === "ticker" && msg.data) {
       const d = msg.data;
@@ -966,7 +983,7 @@ function App() {
     <div style={{ display:"flex", height:"100vh", background:"var(--bg)", color:"var(--fg)", overflow:"hidden" }}>
       <Sidebar active={tab} onNav={setTab} />
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
-        <Topbar time={time} ticker={ticker} />
+        <Topbar time={time} ticker={ticker} voiceState={voiceState} />
         {/* Tweaks toggle */}
         <button onClick={()=>setTweaksOpen(o=>!o)} style={{ position:"fixed", bottom:20, right:tweaksOpen?330:20, zIndex:99, width:38, height:38, borderRadius:"50%", background:"var(--panel-2)", border:"1px solid var(--accent-dim)", color:"var(--accent)", cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", transition:"right 0.2s" }}>⚙</button>
         <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:18, background:"var(--bg)" }}>

@@ -4,6 +4,7 @@ requests
 pyttsx3
 SpeechRecognition
 PyAudio
+keyboard
 aiohttp
 websockets
 psutil
