@@ -118,11 +118,15 @@ def save_prediction(question: str, direction: str, confidence: int, source: str 
     _save(data)
 
 
-def update_prediction_outcome(date: str, outcome: str):
+def update_prediction_outcome(date: str, outcome: str, question: str = ""):
+    """Update first matching pending prediction; optionally match by question too."""
     data = _load()
     for p in data["long_term"]["predictions"]:
         if p["date"] == date and p["outcome"] == "pending":
+            if question and p.get("question") != question:
+                continue
             p["outcome"] = outcome
+            break
     _save(data)
 
 

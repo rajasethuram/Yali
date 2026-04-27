@@ -467,6 +467,20 @@ async def finance_predictions():
     return JSONResponse({"predictions": list(reversed(preds[-10:]))})
 
 
+@app.patch('/finance/predictions')
+async def finance_predictions_update(request: Request):
+    """Mark a prediction outcome as correct or wrong."""
+    data = await request.json()
+    date = data.get('date', '')
+    question = data.get('question', '')
+    outcome = data.get('outcome', '')
+    if outcome not in ("correct", "wrong"):
+        return JSONResponse({"error": "outcome must be 'correct' or 'wrong'"}, status_code=400)
+    from core.memory import update_prediction_outcome
+    update_prediction_outcome(date, outcome, question=question)
+    return JSONResponse({"ok": True})
+
+
 @app.post('/chat')
 async def chat(request: Request):
     """Direct LLM chat — returns answer immediately. Used by Assistant panel."""
@@ -476,11 +490,43 @@ async def chat(request: Request):
         return JSONResponse({"error": "Empty message"}, status_code=400)
 
     from core.llm_client import ask
-    from core.memory import get_context, write, auto_tag
+    from core.memory import get_context, write, auto_tag, recall_all
+
+    cmd_lower = cmd.lower()
+
+    # "What do you know about me?" — memory recall summary
+    recall_triggers = ["what do you know about me", "what you know about me",
+                       "know about me", "remember about me", "recall me",
+                       "what have you learned", "memory dump"]
+    if any(t in cmd_lower for t in recall_triggers):
+        lt = recall_all()
+        watchlist = lt.get("watchlist", [])
+        sectors = lt.get("sector_interests", [])
+        prefs = lt.get("preferences", {})
+        preds = lt.get("predictions", [])
+        correct = sum(1 for p in preds if p.get("outcome") == "correct")
+        wrong   = sum(1 for p in preds if p.get("outcome") == "wrong")
+        pending = sum(1 for p in preds if p.get("outcome") == "pending")
+        wl_str = ", ".join(watchlist) if watchlist else "none yet"
+        sec_str = ", ".join(sectors) if sectors else "none detected yet"
+        result = (
+            f"Raja — here's everything I know about you:\n\n"
+            f"📈 Watchlist ({len(watchlist)}): {wl_str}\n"
+            f"🏭 Sector interests: {sec_str}\n"
+            f"⚙️  Preferences: market={prefs.get('market_focus','NSE')}, "
+            f"risk={prefs.get('risk_profile','moderate')}, brief={prefs.get('brief_length','short')}\n"
+            f"🎯 Predictions: {len(preds)} total — "
+            f"{correct} correct, {wrong} wrong, {pending} open\n\n"
+            f"All interactions are saved to memory/yali_memory.json. "
+            f"I auto-tag stocks and sectors from our conversations."
+        )
+        write(cmd, result, agent="memory")
+        return JSONResponse({"reply": result})
 
     # Route finance queries through finance agent
-    finance_kw = ['market','stock','nifty','sensex','predict','forecast','invest','price','trading','bse','nse']
-    if any(k in cmd.lower() for k in finance_kw):
+    finance_kw = ['market','stock','nifty','sensex','predict','forecast','invest',
+                  'price','trading','bse','nse','bull','bear','ipo','portfolio']
+    if any(k in cmd_lower for k in finance_kw):
         from core.agents.finance_agent import FinanceAgent
         agent = FinanceAgent()
         result = await agent.handle(cmd)

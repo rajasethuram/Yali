@@ -523,18 +523,27 @@ function MemoryView() {
   const [mem, setMem] = React.useState(null);
   const [midterm, setMidterm] = React.useState([]);
 
-  React.useEffect(() => {
-    fetch("/finance/predictions").then(r=>r.json()).then(d => {
-      setMem({ predictions: d.predictions||[] });
-    });
-    // Load memory via recall endpoint
+  const loadMemory = () => {
     fetch("/memory/recall").then(r=>r.json()).then(d => {
       setMem(d);
       setMidterm(d.mid_term||[]);
     }).catch(() => {
-      // fallback: just predictions
+      fetch("/finance/predictions").then(r=>r.json()).then(d => {
+        setMem({ predictions: d.predictions||[] });
+      });
     });
-  }, []);
+  };
+
+  React.useEffect(loadMemory, []);
+
+  const markOutcome = async (p, outcome) => {
+    await fetch("/finance/predictions", {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ date: p.date, question: p.question, outcome }),
+    });
+    loadMemory();
+  };
 
   const preds = mem?.predictions||[];
   const hits = preds.filter(p=>p.outcome==="correct").length;
@@ -614,12 +623,19 @@ function MemoryView() {
               const dc = p.direction==="bullish"?"var(--ok)":p.direction==="bearish"?"var(--danger)":"var(--muted)";
               const oc = p.outcome==="correct"?"var(--ok)":p.outcome==="wrong"?"var(--danger)":"var(--muted)";
               return (
-                <div key={i} style={{ display:"grid", gridTemplateColumns:"70px 2fr 100px 80px 80px", alignItems:"center", gap:10, padding:"11px 0", borderBottom:i<preds.length-1?"1px solid var(--border)":"none" }}>
+                <div key={i} style={{ display:"grid", gridTemplateColumns:"70px 2fr 100px 80px 110px", alignItems:"center", gap:10, padding:"11px 0", borderBottom:i<preds.length-1?"1px solid var(--border)":"none" }}>
                   <span style={{ fontFamily:"var(--mono)", fontSize:11, color:"var(--muted)" }}>{p.date}</span>
                   <span style={{ fontSize:12, color:"var(--fg)" }}>{p.question}</span>
                   <Chip color={dc}>{p.direction}</Chip>
                   <span style={{ fontFamily:"var(--mono)", fontSize:11, color:"var(--fg)" }}>{p.confidence}%</span>
-                  <Chip color={oc}>{p.outcome}</Chip>
+                  {p.outcome === "pending" ? (
+                    <div style={{ display:"flex", gap:4 }}>
+                      <button onClick={()=>markOutcome(p,"correct")} style={{ fontSize:9, padding:"3px 7px", borderRadius:4, border:"1px solid var(--ok)", background:"transparent", color:"var(--ok)", cursor:"pointer", fontFamily:"var(--mono)" }}>✓</button>
+                      <button onClick={()=>markOutcome(p,"wrong")}   style={{ fontSize:9, padding:"3px 7px", borderRadius:4, border:"1px solid var(--danger)", background:"transparent", color:"var(--danger)", cursor:"pointer", fontFamily:"var(--mono)" }}>✗</button>
+                    </div>
+                  ) : (
+                    <Chip color={oc}>{p.outcome}</Chip>
+                  )}
                 </div>
               );
             })}
