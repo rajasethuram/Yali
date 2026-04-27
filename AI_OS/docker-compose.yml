@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+
+  # litellm proxy — translates MiroFish OpenAI calls → Groq
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    restart: unless-stopped
+
+  # MiroFish swarm simulation engine
+  mirofish:
+    image: ghcr.io/666ghj/mirofish:latest
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./mirofish/.env
+    depends_on:
+      - litellm
+    restart: unless-stopped

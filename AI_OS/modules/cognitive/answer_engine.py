@@ -1,5 +1,5 @@
 """
-Structured Answer Engine — uses Claude API to generate 4-part answers.
+Structured Answer Engine — uses Groq LLM to generate 4-part answers.
 Output: opening (10s) + 3-5 bullets + real example from resume + keywords.
 Streams responses via callback for real-time HUD display.
 """
@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Callable, Optional, Generator
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from config.settings import ANTHROPIC_API_KEY, CLAUDE_MIND_MODEL, CLAUDE_MIND_MAX_TOKENS
+from config.settings import GROQ_API_KEY, GROQ_MODEL, CLAUDE_MIND_MAX_TOKENS
 from modules.cognitive.resume_parser import get_profile_context_string
 from modules.cognitive.intent_classifier import classify_intent, get_response_framework
 
-import anthropic
+from groq import Groq
 
 SYSTEM_PROMPT_TEMPLATE = """You are YALI MIND — an elite real-time interview coach.
 Your job: when a professional hears an interview question, you instantly generate a structured, confident answer they can speak aloud.
@@ -48,7 +48,7 @@ RULES:
 
 
 def _build_messages(question: str, intent: str, framework: str,
-                    conversation_history: list) -> list:
+                    conversation_history: list) -> tuple:
     profile_ctx = get_profile_context_string()
     system = SYSTEM_PROMPT_TEMPLATE.format(
         profile_context=profile_ctx,
@@ -56,42 +56,36 @@ def _build_messages(question: str, intent: str, framework: str,
         intent=intent,
     )
 
-    messages = []
-    # Add last N conversation turns for context
+    messages = [{"role": "system", "content": system}]
     for turn in conversation_history[-6:]:
         messages.append({"role": turn["role"], "content": turn["content"]})
-
     messages.append({"role": "user", "content": f"Interview question: {question}"})
 
-    return system, messages
+    return messages
 
 
 def generate_answer_streaming(
     question: str,
     on_chunk: Optional[Callable[[str, str], None]] = None,
     conversation_history: Optional[list] = None,
-) -> Generator[str, None, None]:
+) -> str:
     """
     Streams answer chunks via on_chunk(chunk_text, section_name).
     section_name: 'opening' | 'bullets' | 'example' | 'keywords'
-    Yields full text at end.
+    Returns full text at end.
     """
-    if not ANTHROPIC_API_KEY:
-        error = "[ERROR] ANTHROPIC_API_KEY not set in .env file. Add your key to .env."
+    if not GROQ_API_KEY:
+        error = "[ERROR] GROQ_API_KEY not set in .env file. Get free key at console.groq.com"
         if on_chunk:
             on_chunk(error, "error")
-        return
+        return ""
 
     conversation_history = conversation_history or []
     intent, confidence, label = classify_intent(question)
     framework = get_response_framework(intent)
+    messages = _build_messages(question, intent, framework, conversation_history)
 
-    system_prompt, messages = _build_messages(question, intent, framework, conversation_history)
-
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-    full_response = []
-    current_section = "opening"
+    client = Groq(api_key=GROQ_API_KEY)
 
     section_map = {
         "[OPENING]": "opening",
@@ -100,47 +94,41 @@ def generate_answer_streaming(
         "[KEYWORDS]": "keywords",
     }
 
+    full_response = []
+    current_section = "opening"
+    buffer = ""
+
     try:
-        with client.messages.stream(
-            model=CLAUDE_MIND_MODEL,
+        stream = client.chat.completions.create(
+            model=GROQ_MODEL,
             max_tokens=CLAUDE_MIND_MAX_TOKENS,
-            system=system_prompt,
             messages=messages,
-        ) as stream:
-            buffer = ""
-            for text in stream.text_stream:
-                full_response.append(text)
-                buffer += text
+            stream=True,
+        )
 
-                # Detect section transitions
-                for marker, section in section_map.items():
-                    if marker in buffer:
-                        current_section = section
-                        buffer = buffer.replace(marker, "").strip()
+        for chunk in stream:
+            text = chunk.choices[0].delta.content
+            if not text:
+                continue
+            full_response.append(text)
+            buffer += text
 
-                # Stream to callback
-                if on_chunk and buffer:
-                    on_chunk(buffer, current_section)
-                    buffer = ""
+            for marker, section in section_map.items():
+                if marker in buffer:
+                    current_section = section
+                    buffer = buffer.replace(marker, "").strip()
 
-    except anthropic.AuthenticationError:
-        msg = "[ERROR] Invalid Claude API key. Check ANTHROPIC_API_KEY in .env"
-        if on_chunk:
-            on_chunk(msg, "error")
-        return
-    except anthropic.RateLimitError:
-        msg = "[ERROR] Claude API rate limit hit. Wait 60s and retry."
-        if on_chunk:
-            on_chunk(msg, "error")
-        return
+            if on_chunk and buffer:
+                on_chunk(buffer, current_section)
+                buffer = ""
+
     except Exception as e:
-        msg = f"[ERROR] Claude API error: {e}"
+        msg = f"[ERROR] Groq API error: {e}"
         if on_chunk:
             on_chunk(msg, "error")
-        return
+        return ""
 
-    full_text = "".join(full_response)
-    return full_text
+    return "".join(full_response)
 
 
 def generate_answer_sync(question: str, conversation_history: Optional[list] = None) -> dict:
@@ -148,33 +136,27 @@ def generate_answer_sync(question: str, conversation_history: Optional[list] = N
     Synchronous version — returns structured dict with all sections.
     Returns: {intent, label, framework, opening, bullets, example, keywords, full_text}
     """
-    if not ANTHROPIC_API_KEY:
+    if not GROQ_API_KEY:
         return {
-            "intent": "error",
-            "label": "Error",
-            "framework": "",
-            "opening": "ANTHROPIC_API_KEY not set. Add your Claude API key to .env file.",
-            "bullets": [],
-            "example": "",
-            "keywords": [],
-            "full_text": "",
+            "intent": "error", "label": "Error", "framework": "",
+            "opening": "GROQ_API_KEY not set. Get free key at console.groq.com and add to .env",
+            "bullets": [], "example": "", "keywords": [], "full_text": "",
         }
 
     conversation_history = conversation_history or []
     intent, confidence, label = classify_intent(question)
     framework = get_response_framework(intent)
-    system_prompt, messages = _build_messages(question, intent, framework, conversation_history)
+    messages = _build_messages(question, intent, framework, conversation_history)
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = Groq(api_key=GROQ_API_KEY)
 
     try:
-        response = client.messages.create(
-            model=CLAUDE_MIND_MODEL,
+        response = client.chat.completions.create(
+            model=GROQ_MODEL,
             max_tokens=CLAUDE_MIND_MAX_TOKENS,
-            system=system_prompt,
             messages=messages,
         )
-        full_text = response.content[0].text
+        full_text = response.choices[0].message.content
     except Exception as e:
         return {
             "intent": "error", "label": "Error", "framework": framework,
@@ -182,7 +164,6 @@ def generate_answer_sync(question: str, conversation_history: Optional[list] = N
             "keywords": [], "full_text": ""
         }
 
-    # Parse sections from response
     parsed = _parse_sections(full_text)
     parsed["intent"] = intent
     parsed["label"] = label
@@ -193,7 +174,6 @@ def generate_answer_sync(question: str, conversation_history: Optional[list] = N
 
 def _parse_sections(text: str) -> dict:
     result = {"opening": "", "bullets": [], "example": "", "keywords": []}
-
     sections = {"opening": "", "bullets": "", "example": "", "keywords": ""}
     current = None
 
@@ -214,12 +194,12 @@ def _parse_sections(text: str) -> dict:
     result["example"] = sections["example"].strip()
 
     for line in sections["bullets"].split("\n"):
-        line = line.strip().lstrip("-•*").strip()
+        line = line.strip().lstrip("-*").strip()
         if line:
             result["bullets"].append(line)
 
     for kw in sections["keywords"].split("\n"):
-        kw = kw.strip().lstrip("-•*1234567890.").strip()
+        kw = kw.strip().lstrip("-*1234567890.").strip()
         if kw:
             result["keywords"].append(kw)
 
@@ -227,9 +207,7 @@ def _parse_sections(text: str) -> dict:
 
 
 if __name__ == "__main__":
-    print("=== YALI MIND Answer Engine Test ===")
-    print("Note: Requires ANTHROPIC_API_KEY in .env\n")
-
+    print("=== YALI MIND Answer Engine Test (Groq) ===\n")
     question = "Tell me about a time you handled a conflict with a teammate."
     print(f"Question: {question}\n")
 
@@ -238,6 +216,5 @@ if __name__ == "__main__":
 
     result = generate_answer_streaming(question, on_chunk=on_chunk)
     print("\n\n=== Parsed Sections ===")
-    if isinstance(result, str):
-        parsed = _parse_sections(result)
-        print(json.dumps(parsed, indent=2))
+    if result:
+        print(json.dumps(_parse_sections(result), indent=2))

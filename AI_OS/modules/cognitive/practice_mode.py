@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Optional, Callable
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from config.settings import ANTHROPIC_API_KEY, CLAUDE_MIND_MODEL, MEMORY_DIR
+from config.settings import GROQ_API_KEY, GROQ_MODEL, MEMORY_DIR
 from modules.cognitive.intent_classifier import classify_intent, INTENT_DISPLAY
 from modules.cognitive.resume_parser import load_profile
 
-import anthropic
+from groq import Groq
 
 QUESTION_BANK = {
     "behavioral": [
@@ -96,8 +96,8 @@ class PracticeSession:
         self._client = None
 
     def _get_client(self):
-        if self._client is None and ANTHROPIC_API_KEY:
-            self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        if self._client is None and GROQ_API_KEY:
+            self._client = Groq(api_key=GROQ_API_KEY)
         return self._client
 
     def _pick_question(self, used_questions: set) -> tuple[str, str]:
@@ -131,18 +131,15 @@ class PracticeSession:
             return random.choice(followups)
 
         try:
-            response = client.messages.create(
-                model=CLAUDE_MIND_MODEL,
+            response = client.chat.completions.create(
+                model=GROQ_MODEL,
                 max_tokens=100,
-                system=FOLLOWUP_SYSTEM,
                 messages=[
-                    {
-                        "role": "user",
-                        "content": f"Original question: {question}\n\nCandidate answer: {user_answer[:500]}"
-                    }
+                    {"role": "system", "content": FOLLOWUP_SYSTEM},
+                    {"role": "user", "content": f"Original question: {question}\n\nCandidate answer: {user_answer[:500]}"},
                 ],
             )
-            return response.content[0].text.strip()
+            return response.choices[0].message.content.strip()
         except Exception:
             return "Can you elaborate with a specific example or metric?"
 

@@ -10,5 +10,14 @@ psutil
 python-dotenv
 jinja2
 
+# LLM
+groq
+
+# Finance data
+yfinance
+
+# MiroFish bridge (run separately: litellm --config litellm_config.yaml --port 4000)
+litellm
+
 # Optional (Porcupine requires installation per Picovoice instructions)
 # pvporcupine

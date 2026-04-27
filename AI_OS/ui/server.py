@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config.settings import HUD_HOST, HUD_PORT, ANTHROPIC_API_KEY
+from config.settings import HUD_HOST, HUD_PORT, GROQ_API_KEY, GROQ_MODEL
 
 app = FastAPI(title="YALI AI OS")
 static_dir = os.path.join(os.path.dirname(__file__), 'hud_dashboard')
@@ -163,9 +163,9 @@ async def mind_status():
     """Health check for YALI MIND."""
     return JSONResponse({
         "status": "ok",
-        "claude_api_configured": bool(ANTHROPIC_API_KEY),
+        "groq_configured": bool(GROQ_API_KEY),
         "conversation_turns": len(_mind_conversation) // 2,
-        "model": "claude-sonnet-4-6",
+        "model": GROQ_MODEL,
     })
 
 
@@ -264,7 +264,10 @@ async def broadcast_status(status):
 
 # ─── Background Tasks ──────────────────────────────────────────────────────────
 
+_ticker_tick = 0
+
 async def _system_broadcaster():
+    global _ticker_tick
     while True:
         try:
             status = {
@@ -276,6 +279,17 @@ async def _system_broadcaster():
                 "mind_clients": len(mind_clients),
             }
             await broadcast_status(status)
+
+            # Push ticker every 5 min (150 × 2s ticks)
+            _ticker_tick += 1
+            if _ticker_tick >= 150:
+                _ticker_tick = 0
+                try:
+                    from tools.finance_tool import get_market_overview
+                    overview = get_market_overview()
+                    await broadcast_status({"type": "ticker", "data": overview})
+                except Exception:
+                    pass
         except Exception:
             pass
         await asyncio.sleep(2)
@@ -409,6 +423,93 @@ async def jobs_followup_draft(job_id: str):
     return JSONResponse({"draft": draft, "job": app})
 
 
+# ─── FINANCE API ──────────────────────────────────────────────────────────────
+
+@app.get('/finance/overview')
+async def finance_overview():
+    from tools.finance_tool import get_market_overview
+    data = get_market_overview()
+    return JSONResponse(data)
+
+
+@app.get('/finance/news')
+async def finance_news(q: str = "Indian stock market NSE Nifty", n: int = 5):
+    from tools.finance_tool import get_news
+    news = get_news(query=q, n=n)
+    return JSONResponse({"news": news})
+
+
+@app.post('/finance/brief')
+async def finance_brief():
+    from core.agents.finance_agent import FinanceAgent
+    agent = FinanceAgent()
+    result = await agent.handle("market brief")
+    return JSONResponse({"brief": result})
+
+
+@app.post('/finance/predict')
+async def finance_predict(request: Request):
+    data = await request.json()
+    question = data.get('question', '').strip()
+    if not question:
+        return JSONResponse({"error": "No question provided"}, status_code=400)
+    from core.agents.finance_agent import FinanceAgent
+    agent = FinanceAgent()
+    result = await agent.handle(question)
+    return JSONResponse({"prediction": result})
+
+
+@app.get('/finance/predictions')
+async def finance_predictions():
+    from core.memory import recall_all
+    mem = recall_all()
+    preds = mem.get("predictions", [])
+    return JSONResponse({"predictions": list(reversed(preds[-10:]))})
+
+
+@app.post('/chat')
+async def chat(request: Request):
+    """Direct LLM chat — returns answer immediately. Used by Assistant panel."""
+    data = await request.json()
+    cmd = data.get('message', '').strip()
+    if not cmd:
+        return JSONResponse({"error": "Empty message"}, status_code=400)
+
+    from core.llm_client import ask
+    from core.memory import get_context, write, auto_tag
+
+    # Route finance queries through finance agent
+    finance_kw = ['market','stock','nifty','sensex','predict','forecast','invest','price','trading','bse','nse']
+    if any(k in cmd.lower() for k in finance_kw):
+        from core.agents.finance_agent import FinanceAgent
+        agent = FinanceAgent()
+        result = await agent.handle(cmd)
+    else:
+        ctx = get_context()
+        result = ask(user_prompt=cmd, memory_context=ctx, max_tokens=600)
+        if not result:
+            result = "I couldn't process that command. Try again."
+
+    write(cmd, result, agent="assistant")
+    auto_tag(cmd, result)
+    return JSONResponse({"reply": result})
+
+
+@app.get('/memory/recall')
+async def memory_recall():
+    from core.memory import recall_all, _load
+    lt = recall_all()
+    data = _load()
+    return JSONResponse({**lt, "mid_term": data.get("mid_term", [])[-20:]})
+
+
+@app.get('/finance/price/{symbol}')
+async def finance_price(symbol: str):
+    from tools.finance_tool import get_price
+    data = get_price(symbol.upper())
+    return JSONResponse(data)
+
+
 # ─── Startup ───────────────────────────────────────────────────────────────────
 
 @app.on_event("startup")
@@ -423,7 +524,7 @@ async def _startup():
         pass
 
     print("[YALI] Server started. YALI MIND + Job Engine ready.")
-    print(f"[YALI] Claude API: {'configured' if ANTHROPIC_API_KEY else 'NOT configured - add key to .env'}")
+    print(f"[YALI] Groq API: {'configured' if GROQ_API_KEY else 'NOT configured - add GROQ_API_KEY to .env (free at console.groq.com)'}")
 
 
 def run_server():

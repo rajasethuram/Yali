@@ -1,45 +1,46 @@
 import logging
-from brain.prompt_engine import plan_prompt
-from brain.ollama_client import ask_llm
+from core.llm_client import ask
+from core import memory
+from brain.prompt_engine import PLANNER_SYSTEM, plan_prompt
 from swarm.fallback_planner import FallbackPlanner
 
 logger = logging.getLogger('yali')
 
+_SIMPLE_KEYWORDS = [
+    'open ', 'create ', 'write ', 'search ', 'what can you do',
+    'help', 'who are you',
+]
+
+
 class PlannerAgent:
-    SIMPLE_FALLBACK_KEYWORDS = [
-        'open ', 'create ', 'write ', 'search ', 'stock', 'price', 'what can you do',
-        'what else', 'other things', 'help', 'who are you', 'what are other'
-    ]
-
-    async def plan(self, task):
+    async def plan(self, task: str) -> list:
         task_l = task.lower().strip()
-        if any(keyword in task_l for keyword in self.SIMPLE_FALLBACK_KEYWORDS):
-            logger.info(f"Detected simple or capability task, using fallback planner for: {task}")
+        if any(k in task_l for k in _SIMPLE_KEYWORDS):
             steps = FallbackPlanner.plan(task)
             logger.info(f"Fallback plan: {steps}")
             return steps
 
-        try:
-            # Try LLM first
-            prompt = plan_prompt(task)
-            resp = ask_llm(prompt, timeout=10)
-            
-            # Check if response is an error or too short
-            if not resp or 'Error' in resp or 'error' in resp or 'timeout' in resp.lower() or len(resp) < 5:
-                logger.warning(f"LLM error or empty response: {resp[:100] if resp else 'empty'}")
-                raise Exception("LLM unavailable")
-            
-            # Parse LLM response - filter out empty lines
-            steps = [line.strip() for line in resp.split('\n') if line.strip() and not line.startswith('Error')]
-            if not steps:
-                raise Exception("No steps generated")
-            
-            logger.info(f"Using LLM-generated plan with {len(steps)} steps: {steps}")
-            return steps
-            
-        except Exception as e:
-            # Fallback to rule-based planner
-            logger.info(f"LLM failed ({type(e).__name__}), using fallback planner for: {task}")
+        ctx = memory.get_context()
+        resp = ask(
+            user_prompt=plan_prompt(task),
+            system_prompt=PLANNER_SYSTEM,
+            memory_context=ctx,
+            max_tokens=400,
+            timeout=10,
+        )
+
+        if not resp:
             steps = FallbackPlanner.plan(task)
-            logger.info(f"Fallback plan: {steps}")
+            logger.info(f"LLM unavailable, fallback plan: {steps}")
             return steps
+
+        if resp.upper().startswith("DIRECT"):
+            return [resp.split("—", 1)[-1].strip() if "—" in resp else task]
+
+        steps = [l.strip() for l in resp.split('\n') if l.strip()]
+        steps = [s.lstrip("0123456789.-) ") for s in steps if s]
+        if not steps:
+            return FallbackPlanner.plan(task)
+
+        logger.info(f"LLM plan ({len(steps)} steps): {steps}")
+        return steps

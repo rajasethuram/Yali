@@ -1042,3 +1042,338 @@ body {
   margin-bottom: 6px;
   line-height: 1.5;
 }
+
+/* =======================================================
+   JOB ENGINE PANEL STYLES
+   ======================================================= */
+
+.job-section { margin-top: 20px; }
+.job-tabs-row { margin-bottom: 14px; }
+.job-tab-content { display: block; }
+
+.job-search-row {
+  display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.job-search-row2 { align-items: center; }
+
+.job-input {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 8px; color: #e2e8f0;
+  padding: 9px 13px; font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  outline: none; flex: 1; min-width: 120px;
+  transition: border-color 0.2s;
+}
+.job-input:focus { border-color: #8b5cf6; }
+.job-loc-input { max-width: 200px; }
+.job-score-input { max-width: 70px; flex: none; text-align: center; }
+
+.job-label { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+
+.job-stats-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px;
+  background: rgba(139,92,246,0.08);
+  border-radius: 8px; margin-bottom: 12px;
+  font-size: 12px; color: #a78bfa; font-weight: 500;
+}
+
+/* Job cards */
+.job-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 10px; padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.job-card:hover {
+  border-color: rgba(139,92,246,0.4);
+  background: rgba(139,92,246,0.06);
+}
+.job-card-top {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 5px; gap: 10px;
+}
+.job-title { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+.job-score {
+  font-size: 13px; font-weight: 700;
+  padding: 2px 9px; border-radius: 20px; white-space: nowrap;
+}
+.score-high { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+.score-mid  { background: rgba(245,158,11,0.15);  color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.score-low  { background: rgba(239,68,68,0.12);   color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+.job-meta { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+.job-source { color: #7c3aed; font-weight: 500; }
+
+.job-skills {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;
+}
+.skill-tag { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+.skill-tag.matched { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
+.skill-tag.missing  { background: rgba(239,68,68,0.08);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+
+.job-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.job-btn {
+  font-size: 12px; padding: 5px 12px; border-radius: 6px;
+  border: none; cursor: pointer; font-family: 'Inter', sans-serif;
+  font-weight: 500; transition: opacity 0.2s, transform 0.1s;
+  text-decoration: none; display: inline-block;
+}
+.job-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.job-btn-apply  { background: #7c3aed; color: #fff; }
+.job-btn-tailor { background: rgba(139,92,246,0.2); color: #a78bfa; border: 1px solid rgba(139,92,246,0.4); }
+.job-btn-view   { background: rgba(255,255,255,0.07); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); }
+
+.job-loading, .job-empty, .job-error {
+  text-align: center; padding: 30px; color: #64748b; font-size: 13px;
+}
+.job-error { color: #f87171; }
+
+.job-notif {
+  margin-top: 10px; padding: 9px 14px;
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 8px; font-size: 12px; color: #10b981;
+}
+
+/* Tracker Tab */
+.tracker-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 14px;
+}
+.tracker-stat-card {
+  background: rgba(139,92,246,0.08);
+  border: 1px solid rgba(139,92,246,0.2);
+  border-radius: 10px; padding: 14px; text-align: center;
+}
+.tracker-stat-num { font-size: 22px; font-weight: 700; color: #a78bfa; }
+.tracker-stat-label {
+  font-size: 11px; color: #64748b; margin-top: 3px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.tracker-table-wrap {
+  overflow-x: auto; border-radius: 10px;
+  border: 1px solid rgba(139,92,246,0.15);
+}
+.tracker-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tracker-table th {
+  background: rgba(139,92,246,0.1); color: #94a3b8;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 10px 12px; text-align: left; font-weight: 600;
+}
+.tracker-table td {
+  padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.04);
+  color: #cbd5e1; vertical-align: middle;
+}
+.tracker-table tr:hover td { background: rgba(139,92,246,0.04); }
+.tracker-company { font-weight: 600; color: #e2e8f0; }
+.tracker-empty { text-align: center; color: #475569; padding: 24px; }
+
+.status-badge {
+  font-size: 11px; padding: 2px 9px; border-radius: 12px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.status-applied      { background: rgba(139,92,246,0.15); color: #a78bfa; }
+.status-viewed       { background: rgba(59,130,246,0.15);  color: #60a5fa; }
+.status-phone_screen { background: rgba(245,158,11,0.15);  color: #fbbf24; }
+.status-interview    { background: rgba(16,185,129,0.15);  color: #34d399; }
+.status-offer        { background: rgba(16,185,129,0.25);  color: #10b981; border: 1px solid rgba(16,185,129,0.4); }
+.status-rejected     { background: rgba(239,68,68,0.12);   color: #f87171; }
+.status-withdrawn    { background: rgba(100,116,139,0.15); color: #94a3b8; }
+
+.status-select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 6px; color: #cbd5e1;
+  padding: 4px 8px; font-size: 12px;
+  font-family: 'Inter', sans-serif; cursor: pointer; outline: none;
+}
+
+/* Follow-up Tab */
+.followup-controls {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.followup-dryrun-label {
+  display: flex; align-items: center; gap: 7px;
+  cursor: pointer; font-size: 13px; color: #94a3b8;
+}
+.followup-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+}
+.followup-company { font-size: 13px; font-weight: 600; color: #a78bfa; margin-bottom: 10px; }
+.followup-draft {
+  background: rgba(0,0,0,0.25); border-radius: 8px; padding: 12px;
+  font-size: 12px; color: #cbd5e1; white-space: pre-wrap;
+  font-family: 'Inter', monospace; line-height: 1.6;
+}
+
+/* Tailor Modal */
+.tailor-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; padding: 20px;
+}
+.tailor-modal-inner {
+  background: #0f0f23;
+  border: 1px solid rgba(139,92,246,0.4);
+  border-radius: 16px; padding: 24px;
+  max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto;
+}
+.tailor-modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 18px; font-size: 14px; font-weight: 600; color: #a78bfa;
+}
+.tailor-section-label {
+  font-size: 10px; font-weight: 700; color: #7c3aed;
+  text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px;
+}
+.tailor-content {
+  font-size: 13px; color: #cbd5e1; line-height: 1.6;
+  display: flex; flex-wrap: wrap; gap: 5px;
+}
+.tailor-cover {
+  display: block; white-space: pre-wrap;
+  background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px;
+}
+.tailor-paths { margin-top: 14px; font-size: 11px; color: #475569; }
+
+.kw-tag {
+  background: rgba(139,92,246,0.15); color: #a78bfa;
+  padding: 3px 9px; border-radius: 12px;
+  font-size: 12px; font-weight: 500;
+}
+
+/* ═══════════════ YALI FINANCE ═══════════════ */
+.finance-section {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 20px;
+  backdrop-filter: blur(20px);
+}
+
+.finance-header { border-bottom: 1px solid rgba(16,185,129,0.15); padding-bottom: 12px; margin-bottom: 0; }
+.finance-header i { color: #10b981; }
+.finance-header span { color: #10b981; }
+
+/* Ticker Strip */
+.ticker-strip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin: 14px 0 10px;
+  flex-wrap: wrap;
+}
+.ticker-item { display: flex; align-items: center; gap: 8px; }
+.ticker-name { font-size: 11px; font-weight: 600; color: #94a3b8; letter-spacing: 0.05em; }
+.ticker-price { font-size: 15px; font-weight: 700; color: #e2e8f0; }
+.ticker-change { font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 8px; }
+.ticker-change.up   { color: #10b981; background: rgba(16,185,129,0.12); }
+.ticker-change.down { color: #f87171; background: rgba(248,113,113,0.12); }
+.ticker-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.1); }
+.ticker-refresh { margin-left: auto; cursor: pointer; color: #64748b; transition: color 0.2s; }
+.ticker-refresh:hover { color: #10b981; }
+.ticker-refresh i { width: 14px; height: 14px; }
+.ticker-as-of { font-size: 10px; color: #475569; }
+
+/* Finance Tabs */
+.finance-tab-content { padding-top: 14px; }
+
+/* Brief */
+.finance-brief-controls { margin-bottom: 10px; }
+.finance-brief-box {
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.finance-brief-text { font-size: 14px; line-height: 1.7; color: #cbd5e1; white-space: pre-wrap; }
+.finance-brief-ts { font-size: 11px; color: #475569; margin-top: 8px; }
+
+/* News Feed */
+.finance-news-feed { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.news-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.news-title { font-size: 13px; color: #e2e8f0; line-height: 1.4; }
+.news-meta  { font-size: 11px; color: #64748b; }
+
+/* Predict */
+.finance-predict-row { display: flex; gap: 10px; margin-bottom: 12px; }
+.finance-predict-row input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #e2e8f0;
+  font-size: 14px;
+  outline: none;
+}
+.finance-predict-row input:focus { border-color: #10b981; }
+
+.finance-predict-result {
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 10px;
+  padding: 16px;
+}
+.predict-direction {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+.dir-bullish { background: rgba(16,185,129,0.2); color: #10b981; }
+.dir-bearish { background: rgba(248,113,113,0.2); color: #f87171; }
+.dir-neutral { background: rgba(148,163,184,0.15); color: #94a3b8; }
+.predict-text { font-size: 13px; color: #cbd5e1; line-height: 1.7; white-space: pre-wrap; }
+
+/* Finance loading */
+.finance-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  color: #64748b;
+  font-size: 13px;
+}
+.finance-loading-inline { color: #64748b; font-size: 13px; padding: 8px 0; }
+
+/* Prediction History */
+.prediction-history { display: flex; flex-direction: column; gap: 8px; }
+.history-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.history-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.history-date { font-size: 11px; color: #64748b; }
+.history-conf { font-size: 11px; color: #94a3b8; }
+.history-outcome { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.outcome-correct { background: rgba(16,185,129,0.15); color: #10b981; }
+.outcome-wrong   { background: rgba(248,113,113,0.15); color: #f87171; }
+.outcome-pending { background: rgba(148,163,184,0.1); color: #94a3b8; }
+.history-question { font-size: 13px; color: #cbd5e1; }
+.history-empty { color: #64748b; font-size: 13px; padding: 8px 0; }
+

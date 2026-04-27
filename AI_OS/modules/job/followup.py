@@ -13,7 +13,7 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config.settings import (
-    ANTHROPIC_API_KEY, CLAUDE_MIND_MODEL,
+    GROQ_API_KEY, GROQ_MODEL,
     GMAIL_ADDRESS, GMAIL_APP_PASSWORD, USER_NAME
 )
 from modules.job.tracker import get_tracker
@@ -21,12 +21,12 @@ from modules.job.tracker import get_tracker
 
 def draft_followup_email(company: str, role: str, applied_date: str,
                           follow_up_count: int = 0) -> str:
-    """Generate a follow-up email using Claude API."""
-    if not ANTHROPIC_API_KEY:
+    """Generate a follow-up email using Groq LLM."""
+    if not GROQ_API_KEY:
         return _template_followup(company, role, applied_date, follow_up_count)
 
-    import anthropic
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    from groq import Groq
+    client = Groq(api_key=GROQ_API_KEY)
 
     is_second = follow_up_count >= 1
     prompt = f"""Write a {'second' if is_second else 'first'} follow-up email for a job application.
@@ -50,12 +50,12 @@ Subject: [subject here]
 [email body here]"""
 
     try:
-        resp = client.messages.create(
-            model=CLAUDE_MIND_MODEL,
+        resp = client.chat.completions.create(
+            model=GROQ_MODEL,
             max_tokens=250,
             messages=[{"role": "user", "content": prompt}]
         )
-        return resp.content[0].text.strip()
+        return resp.choices[0].message.content.strip()
     except Exception:
         return _template_followup(company, role, applied_date, follow_up_count)
 

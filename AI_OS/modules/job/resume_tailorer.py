@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from config.settings import ANTHROPIC_API_KEY, CLAUDE_MIND_MODEL, MEMORY_DIR
+from config.settings import GROQ_API_KEY, GROQ_MODEL, MEMORY_DIR
 from modules.cognitive.resume_parser import load_profile, get_profile_context_string
 
 TAILORED_DIR = MEMORY_DIR / "tailored_resumes"
@@ -26,19 +26,19 @@ def tailor_resume_text(jd_text: str, company: str, role: str) -> dict:
       cover_letter: 3-paragraph cover letter
       ats_keywords: keywords to include for ATS
     """
-    if not ANTHROPIC_API_KEY:
+    if not GROQ_API_KEY:
         return {
-            "summary": "Add ANTHROPIC_API_KEY to .env to enable tailoring.",
+            "summary": "Add GROQ_API_KEY to .env to enable tailoring.",
             "skills_to_highlight": [],
             "cover_letter": "Add API key to generate cover letter.",
             "ats_keywords": [],
         }
 
-    import anthropic
+    from groq import Groq
     profile = load_profile()
     profile_ctx = get_profile_context_string()
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = Groq(api_key=GROQ_API_KEY)
 
     # Resume tailoring
     tailor_prompt = f"""You are an expert resume writer and ATS optimization specialist.
@@ -64,12 +64,12 @@ Respond in this exact JSON format:
 }}"""
 
     try:
-        response = client.messages.create(
-            model=CLAUDE_MIND_MODEL,
+        response = client.chat.completions.create(
+            model=GROQ_MODEL,
             max_tokens=600,
             messages=[{"role": "user", "content": tailor_prompt}]
         )
-        raw = response.content[0].text.strip()
+        raw = response.choices[0].message.content.strip()
         # Extract JSON from response
         start = raw.find('{')
         end = raw.rfind('}') + 1
@@ -104,12 +104,12 @@ Rules:
 - Professional but human tone"""
 
     try:
-        cover_response = client.messages.create(
-            model=CLAUDE_MIND_MODEL,
+        cover_response = client.chat.completions.create(
+            model=GROQ_MODEL,
             max_tokens=500,
             messages=[{"role": "user", "content": cover_prompt}]
         )
-        cover_letter = cover_response.content[0].text.strip()
+        cover_letter = cover_response.choices[0].message.content.strip()
     except Exception as e:
         cover_letter = f"Error generating cover letter: {e}"
 
