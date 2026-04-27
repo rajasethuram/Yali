@@ -23,38 +23,38 @@ def _get_client():
     return _client
 
 
+def _build_config(use_search: bool, system_prompt: str, max_tokens: int):
+    """Build GenerateContentConfig — thinking disabled for fast finance responses."""
+    from google.genai import types
+    kwargs = {
+        "max_output_tokens": max_tokens,
+        # Disable chain-of-thought thinking: thinking tokens eat into budget
+        # on gemini-2.5-flash, leaving zero tokens for actual response at low limits.
+        "thinking_config": types.ThinkingConfig(thinking_budget=0),
+    }
+    if use_search:
+        kwargs["tools"] = [types.Tool(google_search=types.GoogleSearch())]
+    if system_prompt:
+        kwargs["system_instruction"] = system_prompt
+    return types.GenerateContentConfig(**kwargs)
+
+
 def ask_with_search(
     user_prompt: str,
     system_prompt: str = "",
     context: str = "",
-    max_tokens: int = 800,
+    max_tokens: int = 600,
 ) -> str:
-    """
-    Ask Gemini 2.0 Flash with Google Search grounding.
-    Returns empty string on failure (caller decides fallback).
-    """
+    """Gemini 2.5 Flash + Google Search grounding. Falls back to '' on failure."""
     client = _get_client()
     if not client:
         return ""
-
     try:
-        from google.genai import types
-
-        full_prompt = user_prompt
-        if context:
-            full_prompt = f"Context:\n{context}\n\n{user_prompt}"
-
-        config_kwargs = {
-            "tools": [types.Tool(google_search=types.GoogleSearch())],
-            "max_output_tokens": max_tokens,
-        }
-        if system_prompt:
-            config_kwargs["system_instruction"] = system_prompt
-
+        full_prompt = f"Context:\n{context}\n\n{user_prompt}" if context else user_prompt
         response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=full_prompt,
-            config=types.GenerateContentConfig(**config_kwargs),
+            config=_build_config(use_search=True, system_prompt=system_prompt, max_tokens=max_tokens),
         )
         return response.text or ""
     except Exception as e:
@@ -68,26 +68,16 @@ def ask(
     context: str = "",
     max_tokens: int = 600,
 ) -> str:
-    """Plain Gemini ask — no search tool. Faster, cheaper."""
+    """Plain Gemini ask — no search. Faster for summarisation/synthesis."""
     client = _get_client()
     if not client:
         return ""
-
     try:
-        from google.genai import types
-
-        full_prompt = user_prompt
-        if context:
-            full_prompt = f"Context:\n{context}\n\n{user_prompt}"
-
-        config_kwargs = {"max_output_tokens": max_tokens}
-        if system_prompt:
-            config_kwargs["system_instruction"] = system_prompt
-
+        full_prompt = f"Context:\n{context}\n\n{user_prompt}" if context else user_prompt
         response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=full_prompt,
-            config=types.GenerateContentConfig(**config_kwargs),
+            config=_build_config(use_search=False, system_prompt=system_prompt, max_tokens=max_tokens),
         )
         return response.text or ""
     except Exception as e:

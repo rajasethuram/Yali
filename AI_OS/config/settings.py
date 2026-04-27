@@ -8,9 +8,9 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# Finance + web search — Gemini 2.0 Flash (free, 1500 req/day)
+# Finance + web search — Gemini 2.5 Flash (free, Google Search built-in)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # UI
 HUD_HOST = "0.0.0.0"
